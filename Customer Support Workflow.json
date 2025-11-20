@@ -1,0 +1,342 @@
+{
+  "name": "Customer Support Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3ab77181-ebb4-4e26-861d-cfa78172caa9",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "exZT3gYjJMNo9L1D",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Customer Support",
+              "description": "An email that is related to helping out a customer. they may be asking questions about our policies or questions about our products or services."
+            },
+            {
+              "category": "Other",
+              "description": "An email that is related to helping out a customer. they may be asking questions about our policies or questions about our products or services."
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are a customer support agent for Tech Heaven. Your job is to respond to incoming emails with helpful, friendly answers.\n\nRules:\n- Use emojis to keep the tone friendly.\n- Keep your response short, clear, and helpful.\n- Use the knowledgebase tool whenever needed.\n- Do NOT include subjects or metadata in your reply.\n- Sign off every message as: \"Mr. Helpful from Tech Heaven Solutions\".\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "4acf5588-bcc1-4537-8586-fab39a082b70",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4o-mini",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        144,
+        208
+      ],
+      "id": "45d5c9bd-07b0-463b-9740-f3b3def91264",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "vITDPiGbBlUVPqKw",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ],
+      "id": "4d061faf-e049-4b97-9cf1-1663b6cc4158",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Gmail Trigger').item.json.text }}",
+        "options": {
+          "systemMessage": "# Overview\nYou are a customer support agent for Tech Heaven. Your job is to respond to incoming emails with relevant information using your knowledgebase tool.\n\n## Instructions\nYour output should be friendly and use emojis\nSign off as Mr. Helpful from Tech Heaven Solutions\n\n## Output \n- Output only the body content of the email"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -96
+      ],
+      "id": "c08a7f3e-5210-4d53-b7dc-c8bd071bf678",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Call this tool to access policy and faq infromation ",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "demo",
+          "mode": "list",
+          "cachedResultName": "demo"
+        },
+        "options": {
+          "pineconeNamespace": "FAQ"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        128
+      ],
+      "id": "39f53341-075b-4f1a-8fb1-76e31734902c",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "9Xe88sHSoOBnn0FZ",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        784,
+        336
+      ],
+      "id": "90b2b165-923e-4dd8-ae92-f5330ecf9501",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "TDTX1n92GhANRmBS",
+          "name": "DEMO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        128
+      ],
+      "id": "fd7ff25f-62e1-4018-9fc2-94499223fc16",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "TDTX1n92GhANRmBS",
+          "name": "DEMO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "emailType": "text",
+        "message": "={{ $('AI Agent').item.json.output }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1168,
+        -96
+      ],
+      "id": "208f2f4f-8253-4c44-b32e-7d544a1b8e94",
+      "name": "Reply to a message",
+      "webhookId": "23ee7f45-a6a7-4f97-90dd-b6916df79f96",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "exZT3gYjJMNo9L1D",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "CATEGORY_PERSONAL"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        -96
+      ],
+      "id": "2310d06c-5fab-4945-a085-f90ae981f759",
+      "name": "Add label to message",
+      "webhookId": "1e2736e1-36d8-4975-adaf-32e43f8a7ff0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "exZT3gYjJMNo9L1D",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fe4862d2-2e07-41e4-b02f-54ffad372567",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "19f96418b2d3b349af2039867261256ba1a243869d32abea543f98d405025d3a"
+  },
+  "id": "i2FJQre6DPAUgKs4",
+  "tags": []
+}
