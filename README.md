@@ -1,4 +1,4 @@
- n8n Automation Workflows Collection
+## n8n Automation Workflows Collection
 
 This repository contains multiple automation workflows built using n8n, designed to streamline business operations across content generation, customer support, document processing, AI-powered knowledge retrieval, and AI-driven analysis. Each workflow demonstrates practical applications of LLMs, vector databases, and API integrations.
 
