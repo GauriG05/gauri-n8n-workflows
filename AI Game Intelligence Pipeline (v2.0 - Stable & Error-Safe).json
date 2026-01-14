@@ -1,0 +1,451 @@
+{
+  "name": "AI Game Intelligence Pipeline (v2.0 - Stable & Error-Safe)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Weekly Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        160,
+        0
+      ],
+      "id": "1ab357de-755c-4779-87a8-6bd3c54657c8"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "Split Games",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        608,
+        0
+      ],
+      "id": "d880b317-d3fd-4baf-94e2-bd0e4e0c6a18"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        16
+      ],
+      "id": "141011b0-19c9-4948-bd84-53093145b0af",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Return the result in strict JSON format only.\nNo markdown, no explanations, no text before or after.\nExample format:\n{\n  \"game_title\": \"Chrono-Gardener\",\n  \"currencies\": [\"Gold\", \"Gems\", \"Hero Shards\"],\n  \"upgrade_systems\": [\"Hero Leveling\", \"Equipment Upgrades\"],\n  \"monetization_model\": \"...\",\n  \"fairness_rating\": 7,\n  \"balance_suggestion\": \"...\"\n}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "558e83e5-43fa-4af9-83e2-e47a7b4e3394",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxOutputTokens": 1048,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        176
+      ],
+      "id": "2bade0f7-229b-47aa-a1ec-b6e4c4e61dae",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "9l86XQJoch7wPpmU",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a highly-skilled assistant. Generate a high-level concept analysis for the mobile game below.\n\nGame Name: {{ $json[\"Carry Game\"] }}\n\nReturn only valid JSON matching this schema:\n{\n  \"game_title\": \"string\",\n  \"core_theme\": \"string\",\n  \"primary_mechanics\": [\"string\"],\n  \"player_motivation\": \"string\",\n  \"target_audience\": \"string\",\n  \"innovation_factor\": \"string\",\n  \"concept_rating\": \"number\"\n}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1040,
+        336
+      ],
+      "id": "36a12d1b-d046-49e7-9817-6ab314577421",
+      "name": "Basic LLM Chain1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {
+          "maxOutputTokens": 2048,
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        512
+      ],
+      "id": "d0398a1d-d807-491a-9bda-6733644ceb9e",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Yh5sd3fWhscVRhi1",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fe8de0f0-2987-4216-91d5-61b8cb7849f8",
+              "name": "economy",
+              "value": "={{$json.economy}}",
+              "type": "object"
+            },
+            {
+              "id": "f6c28a46-1c72-48da-9362-8b97257549a0",
+              "name": "game",
+              "value": "={{$json.game}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "7fa62493-e148-4dcd-ba90-ff9ec9f8df25",
+      "name": "Set Economy Output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6d11489c-9cb3-44d4-8631-21c3f0bf9335",
+              "name": "concept",
+              "value": "={{ typeof $json.concept === \"string\" ? JSON.parse($json.concept) : $json.concept }}",
+              "type": "object"
+            },
+            {
+              "id": "dd3bc92f-6519-4c9a-8cd6-697bf7fea59c",
+              "name": "game",
+              "value": "={{ $json.game.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        336
+      ],
+      "id": "4f54cfb8-59ca-433c-9fdd-a8d212975376",
+      "name": "Set Concept Output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c5f40665-e397-4d5e-af51-e3cc3b6b70e1",
+              "name": "Carry Game",
+              "value": "={{ $json[\"name\"] || $json[\"game\"] || $json[\"title\"] }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        0
+      ],
+      "id": "99a39fed-d491-4af9-8996-cf11630cf405",
+      "name": "Carry Game"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.text || $json.output || $json.data || JSON.stringify($json);\n\nraw = raw\n  .replace(/```json|```/g, '')\n  .replace(/^[^{\\[]+/, '')\n  .replace(/[^}\\]]+$/, '')\n  .trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  raw = raw\n    .replace(/,\\s*}/g, \"}\")\n    .replace(/,\\s*]/g, \"]\")\n    .replace(/\\n/g, \" \")\n    .replace(/\\r/g, \"\")\n    .trim();\n\n  const openCurly = (raw.match(/{/g) || []).length;\n  const closeCurly = (raw.match(/}/g) || []).length;\n  if (openCurly > closeCurly) raw += \"}\".repeat(openCurly - closeCurly);\n\n  try {\n    parsed = JSON.parse(raw);\n  } catch {\n    parsed = { error: \"invalid_json\", raw };\n  }\n}\n\nif (typeof parsed === \"string\") {\n  try {\n    parsed = JSON.parse(parsed);\n  } catch {\n    parsed = { error: \"nested_invalid_json\", raw: parsed };\n  }\n}\n\nreturn [\n  {\n    json: {\n      economy: parsed,\n      game: parsed.game_title || parsed.game || null,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "6196e165-1a1e-4ab7-9d56-dfbcf4d16ecd",
+      "name": "Clean JSON Output"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.text || $json.output || $json.data || JSON.stringify($json);\n\n// 🧹 Clean markdown/code blocks\nraw = raw\n  .replace(/```json|```/g, '')\n  .replace(/^[^{\\[]+/, '')\n  .replace(/[^}\\]]+$/, '')\n  .trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  // 🧩 Attempt repair for malformed JSON\n  raw = raw\n    .replace(/,\\s*}/g, \"}\")\n    .replace(/,\\s*]/g, \"]\")\n    .replace(/\\n/g, \" \")\n    .replace(/\\r/g, \"\")\n    .trim();\n\n  // 🧱 Balance missing brackets\n  const openCurly = (raw.match(/{/g) || []).length;\n  const closeCurly = (raw.match(/}/g) || []).length;\n  const openSquare = (raw.match(/\\[/g) || []).length;\n  const closeSquare = (raw.match(/]/g) || []).length;\n\n  if (openCurly > closeCurly) raw += \"}\".repeat(openCurly - closeCurly);\n  if (openSquare > closeSquare) raw += \"]\".repeat(openSquare - closeSquare);\n\n  try {\n    parsed = JSON.parse(raw);\n  } catch {\n    parsed = { error: \"invalid_json\", raw };\n  }\n}\n\n// ✅ Handle nested JSON (stringified objects)\nif (typeof parsed === \"string\") {\n  try {\n    parsed = JSON.parse(parsed);\n  } catch {\n    parsed = { error: \"nested_invalid_json\", raw: parsed };\n  }\n}\n\n// ✅ Output clean structure for Set Concept Output\nreturn [\n  {\n    json: {\n      concept: parsed, // ✅ stays as object (not string)\n      game: String(parsed.game_title || parsed.game || '')\n        .trim()\n        .replace(/^`+|`+$/g, '')\n        .replace(/\\n/g, '')\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        336
+      ],
+      "id": "bdeb7d46-72c6-4ec9-aae0-23d88848ee3d",
+      "name": "Clean JSON Output 1"
+    },
+    {
+      "parameters": {
+        "fromEmail": "gaikwagauri05@gmail.com",
+        "toEmail": "omkarp1105@gmail.com",
+        "subject": "=🎮 Game Intelligence | {{$json.game_count}} Titles Analyzed\n",
+        "html": "={{$json.summary_html}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2272,
+        16
+      ],
+      "id": "8d3266a1-8fd1-4698-a3cc-49655782131e",
+      "name": "Send email",
+      "webhookId": "e640cf10-ae15-4b4a-9a86-eaf9200cd543",
+      "credentials": {
+        "smtp": {
+          "id": "Ho4GlKlsvptRQJER",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const games = items.map(i => i.json);\n\nconst summaryHtml = `\n  <div style=\"font-family:'Segoe UI',Roboto,Arial,sans-serif;\n              background-color:#f3f4f6;\n              color:#111827;\n              margin:0;\n              padding:0;\n              line-height:1.6;\n              -webkit-text-size-adjust:100%;\">\n\n    <!-- Brand Header -->\n    <div style=\"background:#0f172a;\n                color:#f9fafb;\n                text-align:center;\n                padding:22px 15px;\n                border-bottom:3px solid #2563eb;\">\n      <h1 style=\"margin:0;font-size:24px;font-weight:600;\">\n        🎮 AI Game Intelligence Digest\n      </h1>\n      <p style=\"margin:6px 0 0;font-size:13px;opacity:0.8;\">\n        Generated on ${new Date().toLocaleString()} | ${games.length} Titles Analyzed\n      </p>\n    </div>\n\n    <!-- Main Body -->\n    <div style=\"max-width:740px;margin:0 auto;padding:28px 20px;\">\n\n      ${games.map(g => {\n        const hasConcept = !!g.concept;\n        const borderColor = hasConcept ? '#3b82f6' : '#f59e0b';\n        const titleColor = hasConcept ? '#1e40af' : '#92400e';\n        const cardGradient = hasConcept \n          ? 'linear-gradient(145deg,#eff6ff,#f9fafb)' \n          : 'linear-gradient(145deg,#fff7ed,#fefce8)';\n\n        const conceptRating = g.concept?.concept_rating || null;\n        const fairnessRating = g.economy?.fairness_rating || null;\n\n        const renderBar = (value, color) => {\n          if (!value) return '';\n          const percent = Math.min(100, (value / 10) * 100);\n          return `\n            <div style=\"background:#e5e7eb;border-radius:6px;overflow:hidden;height:8px;margin-top:4px;margin-bottom:10px;\">\n              <div style=\"width:${percent}%;background:${color};height:8px;border-radius:6px;\"></div>\n              <div style=\"text-align:right;font-size:11px;color:#374151;margin-top:2px;\">${value}/10</div>\n            </div>\n          `;\n        };\n\n        return `\n          <div style=\"background:${cardGradient};\n                      border:1.5px solid ${borderColor};\n                      border-radius:12px;\n                      margin:22px 0;\n                      padding:22px 24px;\n                      box-shadow:0 2px 10px rgba(0,0,0,0.05);\">\n\n            <h2 style=\"color:${titleColor};\n                       font-size:20px;\n                       margin:0 0 8px;\n                       text-align:center;\">\n              ${g.game}\n            </h2>\n            <p style=\"font-size:13px;color:#4b5563;text-align:center;margin:0 0 12px;\">\n              <b>Publisher:</b> ${g.publisher || '—'} | \n              <b>Released:</b> ${g.release_year || '—'}\n            </p>\n\n            <hr style=\"border:0;border-top:1px solid ${borderColor};margin:10px 0 18px;\">\n\n            ${g.concept ? `\n              <h3 style=\"margin:0 0 6px;color:#1e293b;font-size:15px;\">🎨 Concept</h3>\n              <p><b>Theme:</b> ${g.concept.core_theme || 'N/A'}</p>\n              <p><b>Innovation:</b> ${g.concept.innovation_factor || 'N/A'}</p>\n              <p><b>Rating:</b> ${conceptRating || 'N/A'}</p>\n              ${renderBar(conceptRating, '#3b82f6')}\n            ` : ''}\n\n            ${g.economy ? `\n              <h3 style=\"margin:14px 0 6px;color:#1e293b;font-size:15px;\">💰 Economy</h3>\n              <p><b>Currencies:</b> ${(g.economy.currencies || []).join(', ')}</p>\n              <p><b>Upgrades:</b> ${(g.economy.upgrade_systems || []).join(', ')}</p>\n              <p><b>Fairness:</b> ${fairnessRating || 'N/A'}</p>\n              ${renderBar(fairnessRating, '#f59e0b')}\n            ` : ''}\n          </div>\n        `;\n      }).join('')}\n    </div>\n  </div>\n`;\n\nreturn [\n  {\n    json: {\n      timestamp: new Date().toISOString(),\n      game_count: games.length,\n      summary_html: summaryHtml\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        16
+      ],
+      "id": "a6f23448-be8e-428b-bb1f-89579713413e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sampleGames = [\n  { game: \"Clash of Clans\", genre: \"Strategy\", platforms: [\"Mobile\"], publisher: \"Supercell\" },\n  { game: \"Valorant\", genre: \"Shooter\", platforms: [\"PC\"], publisher: \"Riot Games\" },\n  { game: \"Genshin Impact\", genre: \"RPG\", platforms: [\"PC\", \"Mobile\"], publisher: \"HoYoverse\" },\n  { game: \"Free Fire\", genre: \"Battle Royale\", platforms: [\"Mobile\"], publisher: \"Garena\" },\n  { game: \"Call of Duty: Mobile\", genre: \"Shooter\", platforms: [\"Mobile\"], publisher: \"Activision\" }\n];\n\nreturn [\n  {\n    json: {\n      games: sampleGames.map(g => ({\n        ...g,\n        concept: {\n          core_theme: g.genre,\n          innovation_factor: \"Popular modern gameplay loop\",\n          concept_rating: Math.round(7 + Math.random() * 2)\n        },\n        economy: {\n          currencies: [\"Gold\", \"Gems\", \"Energy\"],\n          upgrade_systems: [\"Leveling\", \"Equipment\"],\n          fairness_rating: Math.round(6 + Math.random() * 3)\n        }\n      })),\n      game_count: sampleGames.length,\n      timestamp: new Date().toISOString()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "8b4970b8-9daf-4376-a30d-52a42daa4bd4",
+      "name": "Mock Random Game data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Mock Random Game data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Games": {
+      "main": [
+        [
+          {
+            "node": "Carry Game",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Clean JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Clean JSON Output 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Economy Output": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Concept Output": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Carry Game": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean JSON Output": {
+      "main": [
+        [
+          {
+            "node": "Set Economy Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean JSON Output 1": {
+      "main": [
+        [
+          {
+            "node": "Set Concept Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Random Game data": {
+      "main": [
+        [
+          {
+            "node": "Split Games",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "01bfa2db-c04a-44f2-8423-34268e9cc6b4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d60b93c09948e405569f908fc31d34d9358587eed37b8f66bfe630bd1b5031a"
+  },
+  "id": "L6ykkKy6K5NHaLsf",
+  "tags": []
+}
